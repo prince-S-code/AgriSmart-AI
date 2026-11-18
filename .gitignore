@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.env
+
+# Database and runtime data
+*.db
+*.sqlite
+*.sqlite3
+
+# ML artifacts and caches
+backend/trained_models/disease/*.keras
+backend/trained_models/disease/checkpoint*
+backend/trained_models/crop/*.pkl
+backend/trained_models/crop/*.joblib
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Logs and OS files
+*.log
+.DS_Store
+Thumbs.db
