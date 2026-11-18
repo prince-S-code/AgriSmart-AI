@@ -28,3 +28,13 @@ app.include_router(crop_router)
 app.include_router(disease_router)
 app.include_router(dashboard_router)
 app.include_router(health_router)
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    return {
+        "name": "AgriSmart AI API",
+        "status": "running",
+        "health": "/api/health",
+        "documentation": "/docs",
+    }

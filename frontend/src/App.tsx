@@ -80,24 +80,25 @@ function App() {
   if (!token || !user) return (
     <main className="auth-page">
       <section className="auth-brand">
-        <div className="brand-mark">🌿</div>
-        <div><strong>AgriSmart</strong><span>AI</span></div>
-        <div className="brand-copy"><p>AGRICULTURAL INTELLIGENCE</p><h1>Grow smarter.<br/>Farm with confidence.</h1><small>Crop insights and plant health guidance, built for every season.</small></div>
+        <div className="auth-brand-top"><div className="brand-mark">🌿</div><div><strong>AgriSmart</strong><span>AI</span></div></div>
+        <div className="brand-copy"><p>INTELLIGENT FARMING</p><h1>Smarter decisions.<br/><em>Better harvests.</em></h1><small>Personal crop guidance and plant health insights for every field.</small></div>
+        <div className="auth-proof"><div><strong>38</strong><span>Plant classes</span></div><div><strong>7</strong><span>Crop inputs</span></div><div><strong>24/7</strong><span>Access</span></div></div>
       </section>
       <section className="auth-panel">
-        <button className="theme-toggle auth-theme" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} aria-label="Switch theme">{theme === 'light' ? '🌙 Dark' : '☀️ Light'}</button>
+        <button className="theme-toggle auth-theme" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} aria-label="Switch theme">{theme === 'light' ? '◐' : '☀'}</button>
         <div className="auth-card">
-          <p className="eyebrow">FARMER PORTAL</p><h2>{authView === 'login' ? 'Welcome back' : 'Create your account'}</h2>
-          <p className="muted">{authView === 'login' ? 'Sign in to manage your farm insights.' : 'Start using smarter agricultural guidance.'}</p>
+          <p className="eyebrow">FARMER ACCESS</p>
+          <h2>{authView === 'login' ? 'Welcome back' : 'Create account'}</h2>
+          <p className="muted">{authView === 'login' ? 'Continue to your farm workspace.' : 'Join AgriSmart and start making better decisions.'}</p>
           <form onSubmit={submitAuth}>
-            {authView === 'register' && <><label>Full name<input name="full_name" required /></label><label>Mobile number<input name="mobile_number" minLength={8} required /></label><div className="location-row"><label>State<input name="state" /></label><label>District<input name="district" /></label></div></>}
-            <label>Email address<input name="email" type="email" required /></label>
-            <label>Password<input name="password" type="password" minLength={8} required /></label>
+            {authView === 'register' && <><div className="location-row"><label>Full name<input name="full_name" required /></label><label>Mobile number<input name="mobile_number" minLength={8} required /></label></div><div className="location-row"><label>State<input name="state" /></label><label>District<input name="district" /></label></div></>}
+            <label>Email address<input name="email" type="email" placeholder="you@example.com" required /></label>
+            <label>Password<input name="password" type="password" placeholder="Minimum 8 characters" minLength={8} required /></label>
             {authView === 'register' && <><label>Village<input name="village" /></label><label>Confirm password<input name="confirm_password" type="password" required /></label></>}
             {message && <p className="error">{message}</p>}
-            <button className="primary" disabled={loading}>{loading ? 'Please wait…' : authView === 'login' ? 'Sign in' : 'Create account'}</button>
+            <button className="primary" disabled={loading}>{loading ? 'Please wait…' : authView === 'login' ? 'Sign in' : 'Create account'}<span>→</span></button>
           </form>
-          <button className="text-button" onClick={() => { setAuthView(authView === 'login' ? 'register' : 'login'); setMessage('') }}>{authView === 'login' ? 'New farmer? Create an account' : 'Already registered? Sign in'}</button>
+          <button className="text-button" onClick={() => { setAuthView(authView === 'login' ? 'register' : 'login'); setMessage('') }}>{authView === 'login' ? 'New here? Create an account' : 'Already registered? Sign in'}</button>
         </div>
       </section>
     </main>
