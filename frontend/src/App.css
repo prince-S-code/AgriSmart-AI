@@ -258,6 +258,91 @@ button { transition: background 150ms ease, border-color 150ms ease, color 150ms
 .brand-copy p { color: rgba(255,255,255,.72) !important; }
 .brand-copy small { color: rgba(255,255,255,.78) !important; }
 
+/* Modern product finish */
+:root {
+  --modern-bg: #f4f6f1;
+  --modern-panel: #ffffff;
+  --modern-sidebar: #f8faf6;
+  --modern-text: #173528;
+  --modern-muted: #78877f;
+  --modern-line: #e1e7df;
+  --modern-green: #2f7350;
+  --modern-green-soft: #e7efe5;
+  --modern-gold: #d7b45d;
+}
+:root[data-theme='dark'] {
+  --modern-bg: #0b110e;
+  --modern-panel: #111914;
+  --modern-sidebar: #0f1612;
+  --modern-text: #edf4ef;
+  --modern-muted: #9aa79f;
+  --modern-line: #29352f;
+  --modern-green: #82b99a;
+  --modern-green-soft: #1a2a20;
+  --modern-gold: #dcc16f;
+}
+
+body, #root, .app-shell, .workspace { background: var(--modern-bg) !important; }
+.app-shell { grid-template-columns: 244px minmax(0, 1fr) !important; }
+.app-shell aside { background: var(--modern-sidebar) !important; border-right: 1px solid var(--modern-line) !important; }
+.workspace { max-width: 1240px !important; padding: 0 36px 48px !important; }
+.workspace > header { height: 104px !important; border-bottom: 1px solid var(--modern-line); }
+.workspace > header h1 { color: var(--modern-text) !important; }
+.side-brand strong { color: var(--modern-text); }
+.app-shell aside nav button { border-radius: 11px !important; }
+.app-shell aside nav button.active { background: var(--modern-green-soft) !important; color: var(--modern-green) !important; box-shadow: inset 3px 0 0 var(--modern-green) !important; }
+.farmer-card { border-top: 1px solid var(--modern-line) !important; }
+
+.welcome-banner {
+  min-height: 220px !important;
+  margin-top: 24px !important;
+  border: 1px solid #d8e2d4 !important;
+  border-radius: 20px !important;
+  background: linear-gradient(118deg, #dceacb 0%, #eff4e8 75%, #e5eddf 100%) !important;
+  box-shadow: 0 14px 38px rgba(35, 80, 49, .08) !important;
+}
+:root[data-theme='dark'] .welcome-banner {
+  border-color: #2b4034 !important;
+  background: linear-gradient(118deg, #193728 0%, #13221a 75%, #19271f 100%) !important;
+  box-shadow: 0 16px 42px rgba(0,0,0,.22) !important;
+}
+.welcome-banner h2 { color: var(--modern-text) !important; font-size: 36px !important; }
+.welcome-banner button { font-size: 13px; }
+
+.stats-grid { gap: 14px !important; margin: 16px 0 !important; }
+.stats-grid article, .quick-grid button, .panel, .weather {
+  border: 1px solid var(--modern-line) !important;
+  border-radius: 14px !important;
+  background: var(--modern-panel) !important;
+  box-shadow: 0 10px 30px rgba(36, 72, 48, .055) !important;
+}
+:root[data-theme='dark'] .stats-grid article,
+:root[data-theme='dark'] .quick-grid button,
+:root[data-theme='dark'] .panel,
+:root[data-theme='dark'] .weather {
+  box-shadow: 0 14px 36px rgba(0,0,0,.18) !important;
+}
+.stats-grid article { height: 92px !important; }
+.quick-grid button { height: 92px !important; }
+.quick-grid button:hover { transform: translateY(-2px); border-color: var(--modern-green) !important; }
+.quick-grid button > b { width: 42px; height: 42px; border-radius: 11px; background: var(--modern-green-soft); }
+
+.panel { padding: 24px !important; }
+.panel-heading h2, .result-panel h2, .history-list b, .empty h3 { color: var(--modern-text) !important; }
+.tool-layout { grid-template-columns: minmax(0,1.55fr) minmax(260px,.75fr) !important; }
+.tool-layout input, .auth-card input { background: var(--modern-panel) !important; border: 1px solid var(--modern-line) !important; color: var(--modern-text) !important; }
+.primary, .tool-layout .primary { background: var(--modern-green) !important; }
+.drop-zone { background: var(--modern-panel) !important; border: 1.5px dashed var(--modern-line) !important; }
+
+.auth-page { background: var(--modern-bg); }
+.auth-panel { background: var(--modern-bg) !important; }
+.auth-brand { background: linear-gradient(135deg, rgba(20,78,54,.98), rgba(42,106,73,.94)) !important; }
+.auth-brand, .brand-copy, .brand-copy p, .brand-copy h1, .brand-copy small { color: #fff !important; }
+.auth-card { padding: 0; }
+.auth-card h2 { color: var(--modern-text) !important; }
+.auth-card .muted { color: var(--modern-muted) !important; }
+.theme-toggle { background: var(--modern-panel) !important; color: var(--modern-text) !important; border: 1px solid var(--modern-line) !important; }
+
 /* Responsive shell: mobile, tablet, and desktop */
 html, body, #root { width: 100%; max-width: 100%; min-width: 320px; min-height: 100%; overflow-x: hidden; }
 
