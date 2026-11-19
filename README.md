@@ -83,6 +83,10 @@ The integrated `AgriSmart_AI_MobileNetV2.keras` model supports 38 PlantVillage c
 
 Disease predictions should be treated as decision support and are not medical or agricultural guarantees.
 
+## Optional Custom CNN Training
+
+The reference PyTorch CNN can be trained separately when the full 39-class PlantVillage folder dataset is available. See [custom CNN training instructions](docs/custom_cnn_training.md). This produces a `.pt` state-dict checkpoint and does not replace the active Keras MobileNetV2 model automatically.
+
 ## Reference Repositories
 
 This project was developed by redesigning and integrating components from the cloned SmartCrop and Plant Disease Detection reference repositories. Their original licenses and author attributions remain applicable.

@@ -16,6 +16,7 @@ backend/trained_models/disease/*.keras
 backend/trained_models/disease/checkpoint*
 backend/trained_models/crop/*.pkl
 backend/trained_models/crop/*.joblib
+backend/trained_models/custom_cnn/*.pt
 
 # Frontend
 frontend/node_modules/
