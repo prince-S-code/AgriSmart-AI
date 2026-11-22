@@ -1,5 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL ?? ''
-
+const API_URL = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '')
 function headers(token?: string) {
   const result: Record<string, string> = { 'Content-Type': 'application/json' }
   if (token) result.Authorization = `Bearer ${token}`
