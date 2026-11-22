@@ -1,4 +1,6 @@
+
 services:
+  # Backend API
   - type: web
     name: agrismart-api
     runtime: docker
@@ -21,12 +23,14 @@ services:
       - key: ENABLE_YOLO
         value: "false"
 
+  # Frontend
   - type: web
     name: agrismart-web
     runtime: static
     rootDir: frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
+
     envVars:
       - key: VITE_API_URL
         value: https://agrismart-api-tphl.onrender.com
