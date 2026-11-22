@@ -1,34 +1,39 @@
+
 services:
+  # Backend API
   - type: web
     name: agrismart-api
     runtime: docker
-    plan: standard
+    plan: free
     rootDir: backend
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /api/health
-    disk:
-      name: agrismart-data
-      mountPath: /var/data
-      sizeGB: 1
+
     envVars:
       - key: APP_ENV
         value: production
+
       - key: SECRET_KEY
         generateValue: true
+
       - key: DATABASE_PATH
-        value: /var/data/agrismart.db
+        value: /tmp/agrismart.db
+
       - key: UPLOAD_DIR
-        value: /var/data/uploads
+        value: /tmp/uploads
+
       - key: CORS_ORIGINS
         value: https://agrismart-web.onrender.com
 
+  # Frontend
   - type: web
     name: agrismart-web
     runtime: static
     rootDir: frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
+
     envVars:
       - key: VITE_API_URL
         value: https://agrismart-api.onrender.com
