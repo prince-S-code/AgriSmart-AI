@@ -1,57 +1,77 @@
 import json
 from pathlib import Path
-from PIL import Image
+
 import numpy as np
+from PIL import Image
+
 from app.services.disease_treatments import get_treatment
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 MODEL_DIR = BASE_DIR / "trained_models" / "disease"
-MODEL_PATH = MODEL_DIR / "plant_disease_model.keras"
+TFLITE_MODEL_PATH = MODEL_DIR / "plant_disease_model.tflite"
 METADATA_PATH = MODEL_DIR / "metadata.json"
 
 
 class DiseaseService:
     def __init__(self):
-        self.model = None
+        self.interpreter = None
+        self.input_details = None
+        self.output_details = None
         self.metadata = None
 
     def is_available(self) -> bool:
-        return MODEL_PATH.exists() and METADATA_PATH.exists()
+        return TFLITE_MODEL_PATH.exists() and METADATA_PATH.exists()
 
     def _load(self):
-        if self.model is not None:
+        if self.interpreter is not None:
             return
         if not self.is_available():
             raise RuntimeError("Disease model artifact or metadata is missing")
-        import tensorflow as tf
+
+        from ai_edge_litert.interpreter import Interpreter
+
         self.metadata = json.loads(METADATA_PATH.read_text(encoding="utf-8"))
-        self.model = tf.keras.models.load_model(MODEL_PATH, compile=False)
+        self.interpreter = Interpreter(
+            model_path=str(TFLITE_MODEL_PATH),
+            num_threads=2,
+        )
+        self.interpreter.allocate_tensors()
+        self.input_details = self.interpreter.get_input_details()[0]
+        self.output_details = self.interpreter.get_output_details()[0]
 
     def predict(self, image_path: Path):
         self._load()
-        import tensorflow as tf
+
         size = tuple(self.metadata.get("image_size", [224, 224]))
         with Image.open(image_path) as image:
             image.verify()
         with Image.open(image_path) as image:
             rgb = image.convert("RGB")
             rgb = rgb.resize(size)
-            array = tf.keras.utils.img_to_array(rgb)
-            array = tf.keras.applications.mobilenet_v2.preprocess_input(array)
-        probabilities = self.model.predict(np.expand_dims(array, axis=0), verbose=0)[0]
+            array = np.asarray(rgb, dtype=np.float32)
+            array = array / 127.5 - 1.0
+        self.interpreter.set_tensor(
+            self.input_details["index"],
+            np.expand_dims(array, axis=0),
+        )
+        self.interpreter.invoke()
+        probabilities = self.interpreter.get_tensor(
+            self.output_details["index"]
+        )[0]
         index = int(np.argmax(probabilities))
         classes = self.metadata["class_names"]
         if index >= len(classes):
             raise RuntimeError("Disease model output does not match class metadata")
         class_name = classes[index]
+        confidence = float(probabilities[index])
         treatment = get_treatment(class_name)
         return {
             "crop_name": class_name.split("___", 1)[0].replace("_", " "),
             "predicted_disease": class_name,
-            "confidence": round(float(probabilities[index]), 4),
+            "confidence": round(confidence, 4),
             "test_accuracy": self.metadata.get("test_accuracy"),
             "model_used": self.metadata["model_name"],
-            "low_confidence": float(probabilities[index]) < 0.60,
+            "low_confidence": confidence < 0.60,
             "description": treatment["description"],
             "severity": treatment["severity"],
             "treatment_steps": treatment["steps"],

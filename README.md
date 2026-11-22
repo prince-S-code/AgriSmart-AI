@@ -25,7 +25,7 @@ AgriSmart AI is a local agricultural decision-support platform that combines cro
 - Backend: FastAPI, Pydantic, Uvicorn
 - Database: SQLite
 - Crop ML: Python, scikit-learn, Random Forest
-- Disease ML: TensorFlow/Keras MobileNetV2 CNN and Ultralytics YOLOv8
+- Disease ML: TensorFlow Lite MobileNetV2 CNN; optional Ultralytics YOLOv8 on larger instances
 - Authentication: JWT and bcrypt
 
 ## Project Structure
@@ -48,7 +48,7 @@ AgriSmart-AI/
 
 ## Run Locally
 
-The project requires Python 3.12 and Node.js. The first backend setup installs TensorFlow and PyTorch CPU packages and may take several minutes.
+The project requires Python 3.12 and Node.js. Disease prediction uses the smaller TensorFlow Lite runtime. For training or converting the original Keras disease model, also install `backend/requirements-training.txt`. Install the optional YOLO dependencies only if you have enough memory for both models.
 
 ### Backend
 
@@ -77,15 +77,15 @@ Application: http://127.0.0.1:5173
 
 ## Deploy on Render
 
-The root `render.yaml` defines a static frontend and a Docker-based FastAPI service. The API uses a persistent disk for SQLite and uploaded images. The backend is configured on Render's Standard plan because both TensorFlow and PyTorch load for disease predictions; the frontend is a static site. Review Render's current service and disk pricing before creating the services.
+The root `render.yaml` defines a static frontend and a Docker-based FastAPI service on Render's Free plan. It uses TensorFlow Lite for CNN inference and disables YOLO to stay within the API instance's memory limit. Free instances have ephemeral storage, so account and history data in SQLite may be lost when the service restarts or redeploys. The disease-upload endpoint deletes each image after inference.
 
-1. Create a new GitHub repository named `AgriSmart-AI` (do not initialize it with a README or license). Sign in to GitHub CLI with `gh auth login` if you will push from the terminal.
-2. From this project directory, create and push the project branch:
+1. Connect the existing `https://github.com/prince-S-code/AgriSmart-AI` repository to Render. Sign in to GitHub CLI with `gh auth login` only if you need to push additional changes from the terminal.
+2. Push changes to the existing repository's `main` branch:
 
    ```powershell
    git add -A
    git commit -m "Prepare AgriSmart AI for deployment"
-   git remote add agrismart https://github.com/<YOUR_GITHUB_USERNAME>/AgriSmart-AI.git
+   git remote add agrismart https://github.com/prince-S-code/AgriSmart-AI.git
    git push -u agrismart main
    ```
 
@@ -93,13 +93,13 @@ The root `render.yaml` defines a static frontend and a Docker-based FastAPI serv
 
 3. In the Render Dashboard, choose **New → Blueprint**, connect the new GitHub repository, and select the `render.yaml` at the repository root.
 4. Review the two services before applying the Blueprint. It creates:
-   - `agrismart-api`: the backend container, a 1 GB persistent disk at `/var/data`, generated `SECRET_KEY`, and production CORS configuration.
-   - `agrismart-web`: the static Vite frontend configured to call `https://agrismart-api.onrender.com`.
-5. Apply the Blueprint and wait for both services to finish their first deployment. The backend image is large because it contains TensorFlow, PyTorch, and the disease models; the first build and first inference may take several minutes.
-6. Confirm the API responds at `https://agrismart-api.onrender.com/api/health` with `{"status":"ok","database":"sqlite"}`. Open `https://agrismart-api.onrender.com/docs` to inspect the API, then open `https://agrismart-web.onrender.com` to use the app.
-7. If you change either Render service name or add a custom frontend domain, update `CORS_ORIGINS` on `agrismart-api` to the exact frontend origin (scheme and hostname, no path), then redeploy the backend.
+   - `agrismart-api`: the backend container, generated `SECRET_KEY`, Free-plan temporary SQLite storage, and production CORS configuration.
+   - `agrismart-web`: the static Vite frontend configured to call the backend URL.
+5. Apply the Blueprint and wait for both services to finish their first deployment. The backend uses TensorFlow Lite for CNN inference; YOLO is disabled on Free to stay within the memory limit.
+6. For the current Render services, confirm the API responds at `https://agrismart-api-tphl.onrender.com/api/health` with `{"status":"ok","database":"sqlite"}`. Open `https://agrismart-api-tphl.onrender.com/docs` to inspect the API, then open `https://agrismart-web-bkln.onrender.com` to use the app. Render can assign different hostnames when creating new services; always use the service URLs shown in its dashboard.
+7. If you change either Render service name or add a custom frontend domain, update `CORS_ORIGINS` on the API service to the exact frontend origin (scheme and hostname, no path), then redeploy the backend.
 
-The Render disk preserves the SQLite database and uploaded images across deploys. Back up the disk/database regularly; a single instance and local SQLite file are intended for a small deployment, not horizontally scaled production traffic. Never put `.env` or production secrets in GitHub.
+For local YOLO development, install `backend/requirements-yolo.txt` and set `ENABLE_YOLO=true`. To include YOLO in a Docker image, build with `--build-arg INSTALL_YOLO=true` and set `ENABLE_YOLO=true` in the runtime environment. Both models together require more memory than the Render Free instance provides. Never put `.env` or production secrets in GitHub.
 
 ## Crop Model
 
@@ -107,17 +107,17 @@ The crop model uses nitrogen, phosphorus, potassium, temperature, humidity, pH, 
 
 ## Disease Model
 
-The integrated `plant_disease_model.keras` CNN and `AgriSmart_AI_YOLOv8.pt` YOLOv8 classifier support the same 38 PlantVillage classes. The provided corrected CNN test evaluation reports:
+The `plant_disease_model.tflite` CNN and optional `AgriSmart_AI_YOLOv8.pt` YOLOv8 classifier support the same 38 PlantVillage classes. The original Keras CNN was exported to float32 TFLite and its outputs were checked for parity. The provided corrected CNN test evaluation reports:
 
 - Test images: 8,131
 - Test accuracy: 96.5564%
 - Macro precision, recall, and F1: approximately 96%
 
-The disease screen runs both this CNN and the YOLOv8 classifier on each image. It labels per-image confidence separately from held-out test accuracy. The MobileNetV2 test accuracy is 96.56%; no YOLOv8 test-accuracy metric was supplied, so the app reports it as unavailable instead of treating confidence as accuracy. Disease predictions should be treated as decision support and are not agricultural guarantees.
+The disease screen uses the CNN model on Render Free and labels per-image confidence separately from held-out test accuracy. The original MobileNetV2 model's recorded test accuracy is 96.56%; the TFLite export retains its float32 weights. No YOLOv8 test-accuracy metric was supplied, so the app reports it as unavailable instead of treating confidence as accuracy. Disease predictions should be treated as decision support and are not agricultural guarantees.
 
 ## Optional Custom CNN Training
 
-The reference PyTorch CNN can be trained separately when the full 39-class PlantVillage folder dataset is available. See [custom CNN training instructions](docs/custom_cnn_training.md). This produces a `.pt` state-dict checkpoint and does not replace the active Keras MobileNetV2 model automatically.
+The reference PyTorch CNN can be trained separately when the full 39-class PlantVillage folder dataset is available. See [custom CNN training instructions](docs/custom_cnn_training.md). This produces a `.pt` state-dict checkpoint and does not replace the active MobileNetV2 CNN automatically.
 
 ## Reference Repositories
 

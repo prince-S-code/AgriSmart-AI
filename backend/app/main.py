@@ -1,6 +1,9 @@
+
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.core.config import settings
 from app.database.sqlite import init_db
 from app.api.auth import router as auth_router
@@ -22,6 +25,7 @@ cors_origins = [
     for origin in settings.cors_origins.split(",")
     if origin.strip()
 ]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
@@ -30,6 +34,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 app.include_router(auth_router)
 app.include_router(crop_router)
 app.include_router(disease_router)
