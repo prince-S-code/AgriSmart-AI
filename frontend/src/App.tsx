@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react'
 import { authApi, cropHistory, dashboardStats, predictDisease, recommendCrop } from './api'
 import './App.css'
 
@@ -96,6 +96,26 @@ function greeting() {
   return 'Good evening'
 }
 
+function PasswordIcon({ visible }: { visible: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {visible ? (
+        <>
+          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+          <circle cx="12" cy="12" r="3" />
+        </>
+      ) : (
+        <>
+          <path d="m3 3 18 18" />
+          <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+          <path d="M9.9 5.1A11 11 0 0 1 12 5c6.5 0 10 7 10 7a15.7 15.7 0 0 1-4 4.8" />
+          <path d="M6.2 6.2C3.5 8 2 12 2 12s3.5 7 10 7a10.7 10.7 0 0 0 3.2-.5" />
+        </>
+      )}
+    </svg>
+  )
+}
+
 function App() {
   const [token, setToken] = useState(localStorage.getItem('agrismart_token') || '')
   const [user, setUser] = useState<any>(null)
@@ -103,9 +123,12 @@ function App() {
   const [authView, setAuthView] = useState<'login' | 'register'>('login')
   const [authEmail, setAuthEmail] = useState('')
   const [authPassword, setAuthPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [selectedDiseaseImage, setSelectedDiseaseImage] = useState<File | null>(null)
   const [diseaseImagePreview, setDiseaseImagePreview] = useState('')
   const diseaseImagePreviewUrl = useRef<string | null>(null)
+  const [isDraggingDiseaseImage, setIsDraggingDiseaseImage] = useState(false)
   const [values, setValues] = useState<Record<string, number>>(Object.fromEntries(cropFields.map(([key, , value]) => [key, value])))
   const [season, setSeason] = useState('kharif')
   const [location, setLocation] = useState('')
@@ -174,6 +197,8 @@ function App() {
   function clearAuthCredentials() {
     setAuthEmail('')
     setAuthPassword('')
+    setShowPassword(false)
+    setShowConfirmPassword(false)
   }
 
   function switchAuthView(nextView: 'login' | 'register') {
@@ -189,10 +214,20 @@ function App() {
     }
     setSelectedDiseaseImage(null)
     setDiseaseImagePreview('')
+    setIsDraggingDiseaseImage(false)
   }
 
   function selectDiseaseImage(file?: File) {
     if (!file) return
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      setMessage('Please choose a JPG or PNG image.')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage('Image exceeds the 5 MB limit.')
+      return
+    }
+    setMessage('')
     if (diseaseImagePreviewUrl.current) {
       URL.revokeObjectURL(diseaseImagePreviewUrl.current)
     }
@@ -201,6 +236,24 @@ function App() {
     setSelectedDiseaseImage(file)
     setDiseaseImagePreview(previewUrl)
     void submitDisease(file)
+  }
+
+  function handleDiseaseDragOver(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'copy'
+    setIsDraggingDiseaseImage(true)
+  }
+
+  function handleDiseaseDragLeave(event: DragEvent<HTMLLabelElement>) {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      setIsDraggingDiseaseImage(false)
+    }
+  }
+
+  function handleDiseaseDrop(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault()
+    setIsDraggingDiseaseImage(false)
+    selectDiseaseImage(event.dataTransfer.files[0])
   }
 
   async function submitAuth(event: FormEvent<HTMLFormElement>) {
@@ -315,27 +368,50 @@ function App() {
               </label>
               <label>
                 Password
-                <input
-                  name="password"
-                  type="password"
-                  placeholder="At least 6 characters"
-                  minLength={6}
-                  autoComplete="off"
-                  value={authPassword}
-                  onChange={e => setAuthPassword(e.target.value)}
-                  required
-                />
+                <span className="password-field">
+                  <input
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="At least 6 characters"
+                    minLength={6}
+                    autoComplete="off"
+                    value={authPassword}
+                    onChange={e => setAuthPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    className="password-toggle"
+                    type="button"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-pressed={showPassword}
+                    onClick={() => setShowPassword(visible => !visible)}
+                  >
+                    <PasswordIcon visible={showPassword} />
+                  </button>
+                </span>
               </label>
               {authView === 'register' && (
                 <label>
                   Confirm password
-                  <input
-                    name="confirm_password"
-                    type="password"
-                    placeholder="Repeat password"
-                    minLength={6}
-                    required
-                  />
+                  <span className="password-field">
+                    <input
+                      name="confirm_password"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      placeholder="Repeat password"
+                      minLength={6}
+                      autoComplete="off"
+                      required
+                    />
+                    <button
+                      className="password-toggle"
+                      type="button"
+                      aria-label={showConfirmPassword ? 'Hide confirmation password' : 'Show confirmation password'}
+                      aria-pressed={showConfirmPassword}
+                      onClick={() => setShowConfirmPassword(visible => !visible)}
+                    >
+                      <PasswordIcon visible={showConfirmPassword} />
+                    </button>
+                  </span>
                 </label>
               )}
               {message && <p className="error">{message}</p>}
@@ -433,10 +509,15 @@ function App() {
         {view === 'disease' && <section className="disease-layout">
           <article className="panel disease-panel">
             <div className="panel-heading"><div><p>PLANT HEALTH</p><h2>Disease detection</h2></div><b>◎</b></div>
-            <label className={`drop-zone ${selectedDiseaseImage ? 'has-preview' : ''}`}>
+            <label
+              className={`drop-zone ${selectedDiseaseImage ? 'has-preview' : ''} ${isDraggingDiseaseImage ? 'is-dragging' : ''}`}
+              onDragOver={handleDiseaseDragOver}
+              onDragLeave={handleDiseaseDragLeave}
+              onDrop={handleDiseaseDrop}
+            >
               {diseaseImagePreview ? <img className="disease-preview" src={diseaseImagePreview} alt="Selected plant leaf" /> : <b>◎</b>}
               <b>{loading ? 'Analyzing leaf…' : selectedDiseaseImage?.name ?? 'Upload a leaf photo'}</b>
-              <span>{selectedDiseaseImage ? 'Select another photo to replace this one' : 'JPG or PNG, maximum 5 MB'}</span>
+              <span>{selectedDiseaseImage ? 'Drop or choose another photo to replace this one' : 'Drag and drop a photo here, or click to browse · JPG/PNG, max 5 MB'}</span>
               <input
                 type="file"
                 accept="image/jpeg,image/png"
