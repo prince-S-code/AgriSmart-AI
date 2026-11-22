@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { authApi, cropHistory, dashboardStats, predictDisease, recommendCrop } from './api'
 import './App.css'
 
@@ -103,6 +103,9 @@ function App() {
   const [authView, setAuthView] = useState<'login' | 'register'>('login')
   const [authEmail, setAuthEmail] = useState('')
   const [authPassword, setAuthPassword] = useState('')
+  const [selectedDiseaseImage, setSelectedDiseaseImage] = useState<File | null>(null)
+  const [diseaseImagePreview, setDiseaseImagePreview] = useState('')
+  const diseaseImagePreviewUrl = useRef<string | null>(null)
   const [values, setValues] = useState<Record<string, number>>(Object.fromEntries(cropFields.map(([key, , value]) => [key, value])))
   const [season, setSeason] = useState('kharif')
   const [location, setLocation] = useState('')
@@ -115,6 +118,12 @@ function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('agrismart_theme') as 'light' | 'dark') || 'light'
   })
+
+  useEffect(() => () => {
+    if (diseaseImagePreviewUrl.current) {
+      URL.revokeObjectURL(diseaseImagePreviewUrl.current)
+    }
+  }, [])
 
   useEffect(() => {
     if (!token) return
@@ -157,16 +166,53 @@ function App() {
 
   function logout() {
     localStorage.removeItem('agrismart_token')
+    clearAuthCredentials()
+    clearDiseaseImage()
     setToken(''); setUser(null); setView('dashboard')
+  }
+
+  function clearAuthCredentials() {
+    setAuthEmail('')
+    setAuthPassword('')
+  }
+
+  function switchAuthView(nextView: 'login' | 'register') {
+    setAuthView(nextView)
+    clearAuthCredentials()
+    setMessage('')
+  }
+
+  function clearDiseaseImage() {
+    if (diseaseImagePreviewUrl.current) {
+      URL.revokeObjectURL(diseaseImagePreviewUrl.current)
+      diseaseImagePreviewUrl.current = null
+    }
+    setSelectedDiseaseImage(null)
+    setDiseaseImagePreview('')
+  }
+
+  function selectDiseaseImage(file?: File) {
+    if (!file) return
+    if (diseaseImagePreviewUrl.current) {
+      URL.revokeObjectURL(diseaseImagePreviewUrl.current)
+    }
+    const previewUrl = URL.createObjectURL(file)
+    diseaseImagePreviewUrl.current = previewUrl
+    setSelectedDiseaseImage(file)
+    setDiseaseImagePreview(previewUrl)
+    void submitDisease(file)
   }
 
   async function submitAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setLoading(true); setMessage('')
-    const form = new FormData(event.currentTarget)
+    const formElement = event.currentTarget
+    const form = new FormData(formElement)
     const payload = Object.fromEntries(form.entries()) as Record<string, string>
     if (authView === 'register') {
       if (payload.password !== payload.confirm_password) {
         setMessage('Passwords do not match')
+        clearAuthCredentials()
+        formElement.reset()
         setLoading(false)
         return
       }
@@ -179,7 +225,11 @@ function App() {
       setToken(data.access_token); setUser(data.user)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Authentication failed')
-    } finally { setLoading(false) }
+    } finally {
+      clearAuthCredentials()
+      formElement.reset()
+      setLoading(false)
+    }
   }
 
   async function submitCrop(event: FormEvent) {
@@ -213,14 +263,14 @@ function App() {
               <button
                 type="button"
                 className={`auth-tab ${authView === 'login' ? 'active' : ''}`}
-                onClick={() => { setAuthView('login'); setMessage('') }}
+                onClick={() => switchAuthView('login')}
               >
                 Sign In
               </button>
               <button
                 type="button"
                 className={`auth-tab ${authView === 'register' ? 'active' : ''}`}
-                onClick={() => { setAuthView('register'); setMessage('') }}
+                onClick={() => switchAuthView('register')}
               >
                 Register
               </button>
@@ -244,7 +294,7 @@ function App() {
                 </button>
               </div>
             )}
-            <form onSubmit={submitAuth}>
+            <form onSubmit={submitAuth} autoComplete="off">
               {authView === 'register' && (
                 <label>
                   Full name
@@ -257,6 +307,7 @@ function App() {
                   name="email"
                   type="email"
                   placeholder="you@example.com"
+                  autoComplete="off"
                   value={authEmail}
                   onChange={e => setAuthEmail(e.target.value)}
                   required
@@ -269,6 +320,7 @@ function App() {
                   type="password"
                   placeholder="At least 6 characters"
                   minLength={6}
+                  autoComplete="off"
                   value={authPassword}
                   onChange={e => setAuthPassword(e.target.value)}
                   required
@@ -289,7 +341,7 @@ function App() {
               {message && <p className="error">{message}</p>}
               <button className="primary" disabled={loading}>{loading ? 'Please wait…' : authView === 'login' ? 'Sign in' : 'Create account'}<span>→</span></button>
             </form>
-            <button className="text-button" onClick={() => { setAuthView(authView === 'login' ? 'register' : 'login'); setMessage('') }}>{authView === 'login' ? 'New here? Create an account' : 'Already registered? Sign in'}</button>
+            <button className="text-button" onClick={() => switchAuthView(authView === 'login' ? 'register' : 'login')}>{authView === 'login' ? 'New here? Create an account' : 'Already registered? Sign in'}</button>
           </div>
       </section>
     </main>
@@ -381,7 +433,19 @@ function App() {
         {view === 'disease' && <section className="disease-layout">
           <article className="panel disease-panel">
             <div className="panel-heading"><div><p>PLANT HEALTH</p><h2>Disease detection</h2></div><b>◎</b></div>
-            <label className="drop-zone"><b>◎</b><b>{loading ? 'Analyzing leaf with both models…' : 'Upload a leaf photo'}</b><span>JPG or PNG, maximum 5 MB</span><input type="file" accept="image/jpeg,image/png" onChange={event => void submitDisease(event.target.files?.[0])}/></label>
+            <label className={`drop-zone ${selectedDiseaseImage ? 'has-preview' : ''}`}>
+              {diseaseImagePreview ? <img className="disease-preview" src={diseaseImagePreview} alt="Selected plant leaf" /> : <b>◎</b>}
+              <b>{loading ? 'Analyzing leaf…' : selectedDiseaseImage?.name ?? 'Upload a leaf photo'}</b>
+              <span>{selectedDiseaseImage ? 'Select another photo to replace this one' : 'JPG or PNG, maximum 5 MB'}</span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png"
+                onChange={event => {
+                  selectDiseaseImage(event.target.files?.[0])
+                  event.currentTarget.value = ''
+                }}
+              />
+            </label>
             {message && <p className="error">{message}</p>}
           </article>
           {diseaseResult && <article className="panel disease-result">

@@ -171,6 +171,8 @@ button { cursor:pointer; }
 .disease-layout { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(280px,.65fr); gap:14px; align-items:start; }
 .disease-panel { max-width:820px; }
 .drop-zone { min-height:278px; display:flex!important; flex-direction:column; align-items:center; justify-content:center; border:1.5px dashed var(--line); border-radius:14px; background:var(--panel-soft); color:var(--muted); }
+.drop-zone.has-preview { padding:16px; }
+.disease-preview { display:block; max-width:100%; max-height:220px; border-radius:10px; object-fit:contain; }
 .drop-zone b { margin-top:8px; color:var(--heading); }
 .drop-zone input { position:absolute; opacity:0; width:1px; height:1px; }
 .disease-result>p:first-child { margin:0 0 8px; color:var(--muted); font-size:10px; font-weight:850; letter-spacing:1.5px; }
