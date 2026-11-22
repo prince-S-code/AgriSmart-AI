@@ -1,10 +1,12 @@
 import sqlite3
 from pathlib import Path
+from app.core.config import settings
 
-DB_PATH = Path(__file__).resolve().parents[2] / "agrismart.db"
+DB_PATH = settings.database_path or Path(__file__).resolve().parents[2] / "agrismart.db"
 
 
 def get_db():
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
@@ -70,4 +72,16 @@ def init_db():
         if "user_id" not in columns("disease_predictions"):
             conn.execute("ALTER TABLE disease_predictions ADD COLUMN user_id INTEGER")
     conn.commit()
+
+    # Seed demo account if no users exist
+    user_count = conn.execute("SELECT COUNT(*) as count FROM users").fetchone()
+    if settings.app_env.lower() != "production" and user_count and user_count["count"] == 0:
+        from app.core.security import hash_password
+        conn.execute("""INSERT INTO users
+            (full_name, email, mobile_number, password_hash, state, district, village)
+            VALUES (?, ?, ?, ?, ?, ?, ?)""", (
+            "Demo Farmer", "farmer@example.com", "9876543210",
+            hash_password("password123"), "Punjab", "Ludhiana", ""
+        ))
+        conn.commit()
     conn.close()

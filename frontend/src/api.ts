@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+const API_URL = import.meta.env.VITE_API_URL ?? ''
 
 function headers(token?: string) {
   const result: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -9,7 +9,15 @@ function headers(token?: string) {
 async function request(path: string, options: RequestInit = {}) {
   const response = await fetch(`${API_URL}${path}`, options)
   const data = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(data.detail || 'Request failed')
+  if (!response.ok) {
+    let msg = 'Request failed'
+    if (typeof data.detail === 'string') {
+      msg = data.detail
+    } else if (Array.isArray(data.detail) && data.detail.length > 0) {
+      msg = data.detail.map((e: any) => e.msg || e.message || JSON.stringify(e)).join(', ')
+    }
+    throw new Error(msg)
+  }
   return data
 }
 
@@ -36,6 +44,14 @@ export async function predictDisease(file: File, token: string) {
   form.append('image', file)
   const response = await fetch(`${API_URL}/api/disease/predict`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form })
   const data = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(data.detail || 'Prediction failed')
+  if (!response.ok) {
+    let msg = 'Prediction failed'
+    if (typeof data.detail === 'string') {
+      msg = data.detail
+    } else if (Array.isArray(data.detail) && data.detail.length > 0) {
+      msg = data.detail.map((e: any) => e.msg || e.message || JSON.stringify(e)).join(', ')
+    }
+    throw new Error(msg)
+  }
   return data
 }

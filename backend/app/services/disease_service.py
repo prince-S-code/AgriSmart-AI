@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from PIL import Image
 import numpy as np
+from app.services.disease_treatments import get_treatment
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 MODEL_DIR = BASE_DIR / "trained_models" / "disease"
@@ -42,12 +43,18 @@ class DiseaseService:
         classes = self.metadata["class_names"]
         if index >= len(classes):
             raise RuntimeError("Disease model output does not match class metadata")
+        class_name = classes[index]
+        treatment = get_treatment(class_name)
         return {
-            "crop_name": classes[index].split("___", 1)[0].replace("_", " "),
-            "predicted_disease": classes[index],
+            "crop_name": class_name.split("___", 1)[0].replace("_", " "),
+            "predicted_disease": class_name,
             "confidence": round(float(probabilities[index]), 4),
+            "test_accuracy": self.metadata.get("test_accuracy"),
             "model_used": self.metadata["model_name"],
             "low_confidence": float(probabilities[index]) < 0.60,
+            "description": treatment["description"],
+            "severity": treatment["severity"],
+            "treatment_steps": treatment["steps"],
         }
 
 

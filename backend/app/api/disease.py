@@ -3,10 +3,12 @@ from uuid import uuid4
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from app.database.sqlite import get_db
 from app.core.dependencies import get_current_user
+from app.core.config import settings
 from app.services.disease_service import disease_service
+from app.services.yolo_service import yolo_service
 
 router = APIRouter(prefix="/api/disease", tags=["Disease Detection"])
-UPLOAD_DIR = Path(__file__).resolve().parents[3] / "uploads" / "disease"
+UPLOAD_DIR = Path(settings.upload_dir) / "disease"
 
 
 @router.post("/predict")
@@ -14,8 +16,12 @@ async def predict(image: UploadFile = File(...), current_user: dict = Depends(ge
     if image.content_type not in {"image/jpeg", "image/png"}:
         raise HTTPException(status_code=400, detail="Only JPG, JPEG and PNG images are allowed")
     content = await image.read()
-    if len(content) > 5 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="Image exceeds the 5 MB limit")
+    max_upload_bytes = settings.max_upload_mb * 1024 * 1024
+    if len(content) > max_upload_bytes:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Image exceeds the {settings.max_upload_mb} MB limit",
+        )
 
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     suffix = ".png" if image.content_type == "image/png" else ".jpg"
@@ -25,6 +31,7 @@ async def predict(image: UploadFile = File(...), current_user: dict = Depends(ge
 
     try:
         result = disease_service.predict(image_path)
+        yolo_result = yolo_service.predict(image_path)
     except Exception as exc:
         image_path.unlink(missing_ok=True)
         raise HTTPException(status_code=503, detail=f"Disease inference unavailable: {exc}")
@@ -34,10 +41,21 @@ async def predict(image: UploadFile = File(...), current_user: dict = Depends(ge
         (user_id, image_name, crop_name, predicted_disease, confidence, model_used)
         VALUES (?, ?, ?, ?, ?, ?)""", (
         current_user["id"], str(image_path), result["crop_name"],
-        result["predicted_disease"], result["confidence"], result["model_used"]
+        result["predicted_disease"], result["confidence"],
+        f'{result["model_used"]} + YOLOv8'
     ))
     conn.commit()
     conn.close()
+    result["model_results"] = [
+        {
+            "model": "MobileNetV2 CNN",
+            "predicted_disease": result["predicted_disease"],
+            "confidence": result["confidence"],
+            "test_accuracy": result["test_accuracy"],
+            "detections": [],
+        },
+        yolo_result,
+    ]
     return result
 
 

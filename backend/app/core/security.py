@@ -1,11 +1,7 @@
 from datetime import datetime, timedelta, timezone
 import bcrypt
 from jose import jwt
-
-
-SECRET_KEY = "local-development-change-before-production"
-ALGORITHM = "HS256"
-ACCESS_MINUTES = 480
+from app.core.config import settings
 
 
 def hash_password(password: str) -> str:
@@ -17,10 +13,14 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def create_access_token(user_id: int) -> str:
-    expires = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_MINUTES)
-    return jwt.encode({"sub": str(user_id), "exp": expires}, SECRET_KEY, algorithm=ALGORITHM)
+    expires = datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_minutes)
+    return jwt.encode(
+        {"sub": str(user_id), "exp": expires},
+        settings.secret_key,
+        algorithm=settings.algorithm,
+    )
 
 
 def decode_access_token(token: str) -> int:
-    payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
     return int(payload["sub"])
